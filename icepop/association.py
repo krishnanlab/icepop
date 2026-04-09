@@ -23,6 +23,7 @@ def association(
     trait_name: str = None,
     n_perm: int = 1000,
     q_thres: float = 0.1,
+    min_purity: float = 0.2,
     output_dfbs: bool = True
 ):
     """
@@ -57,6 +58,8 @@ def association(
         Number of permutations for null distribution estimation.
     q_thres : float, default=0.1
         FDR threshold for significance.
+    min_purity: float, default=0.2
+        mininum purity required to be included in mc to cell type aggregation
     output_dfbs: bool: default=True
         Whether output influence diagnostics
 
@@ -144,8 +147,11 @@ def association(
     purity = freq_df.max(axis=0)
     logger.info(
         f"Metacell purity: "
-        f"{(purity >= 0.2).sum()}/{len(purity)} pass min_purity=0.2"
+        f"{(purity >= min_purity).sum()}/{len(purity)} pass min_purity={min_purity}"
     )
+
+    # regularize < min_purity to zero
+    freq_df[freq_df < min_purity] = 0
 
     # output name
     if trait_name is None:
