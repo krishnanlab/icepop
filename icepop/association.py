@@ -24,6 +24,7 @@ def association(
     n_perm: int = 1000,
     q_thres: float = 0.1,
     min_purity: float = 0.2,
+    min_mc_size: int = 20,
     output_dfbs: bool = True
 ):
     """
@@ -60,6 +61,8 @@ def association(
         FDR threshold for significance.
     min_purity: float, default=0.2
         mininum purity required to be included in mc to cell type aggregation
+    min_mc_size: int, default=20
+        mininum metacell size to be included in mc to cell type aggregation
     output_dfbs: bool: default=True
         Whether output influence diagnostics
 
@@ -152,6 +155,20 @@ def association(
 
     # regularize < min_purity to zero
     freq_df[freq_df < min_purity] = 0
+
+    # regularize < min_mc_size to zero
+    mc_cnt = adata.obs['metacell'].value_counts()
+    mc_cnt = mc_cnt.reindex(freq_df.columns)
+    small_mc_mask = mc_cnt <= min_mc_size   # boolean per column
+    n_small = small_mc_mask.sum()
+    n_total = len(small_mc_mask)
+
+    logger.info(
+        f"Metacell size: {n_small}/{n_total} "
+        f"({n_small / max(n_total, 1):.2%}) <= {min_mc_size} cells"
+    )
+
+    freq_df.loc[:, small_mc_mask] = 0
 
     # output name
     if trait_name is None:
