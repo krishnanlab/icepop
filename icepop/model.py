@@ -470,7 +470,7 @@ class MetacellAssoc:
             sig_pct = 0.0
             if q <= self.q_thres:
                 purity = freq_df.loc[ct, :].values
-                if (purity > 0).sum() >= 2:
+                if (purity > 0).sum() >= 1:
                     p = mc_p[purity > 0]
                     pos_mcs = metacells[np.argwhere(purity > 0).ravel()]
                     w = purity[purity > 0]
