@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/icon.jpg" width="500">
+  <img src="images/icon.jpg" width="800">
 </p>
 
 # ICePop: Metacell-informative Cell Population
