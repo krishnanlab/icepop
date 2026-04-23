@@ -60,9 +60,9 @@ def association(
     q_thres : float, default=0.1
         FDR threshold for significance.
     min_purity: float, default=0.2
-        mininum purity required to be included in mc to cell type aggregation
+        Minimum metacell purity required for inclusion in cell type aggregation.
     min_mc_size: int, default=20
-        mininum metacell size to be included in mc to cell type aggregation
+        Minimum metacell size required for inclusion in cell type aggregation.
     output_dfbs: bool: default=True
         Whether output influence diagnostics
 
