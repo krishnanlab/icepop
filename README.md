@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/icon.jpg" width="500">
+</p>
+
 # ICePop: Metacell-informative Cell Population
 This repository contains source code for ICePop paper ([link](https://doi.org/10.64898/2026.04.01.715877)). 
 
@@ -36,6 +40,7 @@ icepop metacell \
 4. `--ncell_per_mc` (int; default=75) Target number of cells per metacell. The total number of metacells is \n determined as approximately `n_cells / ncell_per_mc`
 5. `--ct_key` (str; default='cell_type') Column name in `adata.obs` specifying cell-type annotations. Used to evaluate metacell purity
 6. `--device` (str; default='cuda') Compute device to use. Options include 'cuda' or 'cpu'
+7. `--batch_size` (int; default=512) Batch size to run metaq
 
 this step need gpu for faster speed
 
@@ -66,14 +71,16 @@ icepop association \
 9. `--trait_name` (str; optional) Trait name used for output file naming
 10. `--n_perm` (int; default=1000) Number of permutations for null distribution estimation
 11. `--q_thres` (float; default=0.1) FDR threshold for significance
-12. `--output_dfbs` (boolean; default=True) If output influential testing results
+12. `--min_purity` (float; default=0.2) Minimum metacell purity required for inclusion in cell type aggregation
+13. `--min_mc_size` (int; default=20) Minimum metacell size required for inclusion in cell type aggregation
+14. `--output_dfbs` (boolean; default=True) If output influential testing results
 
 #### Outputs
 
 1. `outdir/celltype__trait-*.csv`: Disease-cell type association table
 2. `outdir/dfbs__trait-*.npz`: Gene-level influence scores (DFBETAS) for each disease–cell type association
 3. `outdir/metacell__trait-*.csv`: Disease-metacell type association table
-4. `outdir/mc_spec_score.npz`: (if not provided as part of run arguments)
+4. `outdir/mc_spec_score.npz`: Metacell expression specificity (if nothing specified for `--spec_score`, this will be the path to generated expression specificity)
 5. `outdir/mcfdr__trait-*.csv`: Cell type × metacell matrix indicating significant disease-associated metacells within each cell type
 
 where `*` is trait name we assume magmaz file name is `*.genes.out`
