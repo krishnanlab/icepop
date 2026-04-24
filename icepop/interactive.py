@@ -11,6 +11,7 @@ logger = logging.getLogger("icepop.interactive")
 
 def interactive(
     outdir: str,
+    mcdir: str,
     geneset_collections: str,
     geneset_path: str = None,
     adata_path: str = None
@@ -26,8 +27,13 @@ def interactive(
     ----------
     outdir : str
         Output directory where enrichment results and reports will be saved.
-        This directory should also contain outputs from metacell assignment and
-        disease-cell type association.
+        This directory should also contain outputs from disease-cell type
+        association (generated from \"icepop association\").
+
+    mcdir : str
+        Directory contains metacell assignments (mc_assign.csv) and
+        stats (mc_stats.csv) (generated from \"icepop metacell\").
+        This can be the same dir as outdir.
 
     geneset_collections : str
         Name of predefined gene set collections to use. Available options include
@@ -58,7 +64,16 @@ def interactive(
     """
 
     if not outdir:
-        raise ValueError("outdir is required")
+        raise ValueError(
+            "outdir is required. This directory should contain results "
+            "generated from 'icepop association'."
+        )
+
+    if not mcdir:
+        raise ValueError(
+            "mcdir is required. This directory should contain results "
+            "generated from 'icepop metacell'."
+        )
 
     if geneset_collections.lower() == "none" and not geneset_path:
         raise ValueError("--geneset_path required when geneset_collections=None")
@@ -91,6 +106,7 @@ def interactive(
             notebook,
             executed_nb,
             "-p", "outdir", outdir,
+            "-p", "mcdir", mcdir,
             "-p", "adata_path", adata_path], check=True)
         subprocess.run([
             "python", "-m", "nbconvert",
