@@ -28,7 +28,7 @@ A more detailed tutorial is available at [`notebook/ICePop_tutorial.ipynb`](http
 ```
 icepop metacell \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
-    --outdir ../results/TM_FACS \
+    --outdir ../results/TM_FACS_mc \
     --save_name TM_FACS
 ```
 
@@ -55,7 +55,7 @@ icepop association \
     --mc_assign ../results/TM_FACS/mc_assign.csv \
     --magmaz ../data/magmaz/asd.genes.out \
     --sp mmusculus \
-    --outdir ../results/TM_FACS
+    --outdir ../results/TM_FACS_association
 ```
 
 #### Input options
@@ -89,7 +89,8 @@ where `*` is trait name we assume magmaz file name is `*.genes.out`
 ```
 # run all gene sets
 icepop interactive \
-  --outdir ../results/TM_FACS \
+  --outdir ../results/TM_FACS_association \
+  --mcdir ../results/TM_FACS_mc \
   --geneset_collections All \
   --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 
@@ -97,7 +98,8 @@ or
 
 # run specific gene sets
 icepop interactive \
-  --outdir ../results/TM_FACS \
+  --outdir ../results/TM_FACS_association \
+  --mcdir ../results/TM_FACS_mc \
   --geneset_collections BIOCARTA \
   --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 
@@ -105,21 +107,21 @@ or
 
 # custom gene sets
 icepop interactive \
-  --outdir ../results/TM_FACS \
+  --outdir ../results/TM_FACS_association \
+  --mcdir ../results/TM_FACS_mc \
   --geneset_collections none \
   --geneset_path custom.gmt \
   --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 ```
 
 #### Input options
-1. `--outdir` (str) Output directory for association results and metacell results
-2. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
-3. `--geneset_path` (str) path to custom gmt file if `--geneset_collections` is set to `none`
-4. `--adata_path` (str) path to AnnData file containing single-cell expression ***count*** data
+1. `--outdir` (str) Output directory for association results. Enrichment results and reports will also be saved here.
+2. `--mcdir` (str)  Directory for metacell assignments (This dir can be the same as `--outdir`)
+3. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
+4. `--geneset_path` (str) path to custom gmt file if `--geneset_collections` is set to `none`
+5. `--adata_path` (str) path to AnnData file containing single-cell expression ***count*** data
 
 #### Outputs
 1. `outdir/icepop-report.ipynb`: Interactive Jupyter notebook containing all results
 2. `outdir/icepop-report.html`: Rendered HTML version of the notebook for easy viewing
 3. `outdir/enrichment`: Directory containing gene set enrichment analysis results
-
-> **Note:** We recommend using the same `--outdir` for Step 1 and Step 2, as the interactive step expects results from both steps to be located in the same output directory.
