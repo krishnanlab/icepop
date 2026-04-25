@@ -111,6 +111,7 @@ def interactive(
         subprocess.run([
             "python", "-m", "nbconvert",
             "--to", "html",
+            "--no-input",
             executed_nb,
             "--output-dir", outdir
         ], check=True)
