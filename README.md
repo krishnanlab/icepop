@@ -85,12 +85,12 @@ icepop association \
 
 where `*` is trait name we assume magmaz file name is `*.genes.out`
 
-### Step3: Enrichment Analysis and Interactive output
+### Step3: Enrichment analysis and interactive output
 ```
 # run all gene sets
 icepop interactive \
-  --outdir ../results/TM_FACS_association \
-  --mcdir ../results/TM_FACS_mc \
+  --outdir ../results/TM_FACS \
+  --mcdir ../results/TM_FACS \
   --geneset_collections All \
   --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 
@@ -98,8 +98,8 @@ or
 
 # run specific gene sets
 icepop interactive \
-  --outdir ../results/TM_FACS_association \
-  --mcdir ../results/TM_FACS_mc \
+  --outdir ../results/TM_FACS \
+  --mcdir ../results/TM_FACS \
   --geneset_collections BIOCARTA \
   --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 
@@ -107,8 +107,8 @@ or
 
 # custom gene sets
 icepop interactive \
-  --outdir ../results/TM_FACS_association \
-  --mcdir ../results/TM_FACS_mc \
+  --outdir ../results/TM_FACS \
+  --mcdir ../results/TM_FACS \
   --geneset_collections none \
   --geneset_path custom.gmt \
   --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
