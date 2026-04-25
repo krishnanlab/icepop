@@ -6,6 +6,13 @@ authors = ["yhadevol <yh_adevol@hotmail.com>"]
 license = "BSD 2-Clause License"
 readme = "README.md"
 
+packages = [{ include = "icepop" }]
+
+include = [
+    "icepop/data/**/*",
+    "icepop/templates/*.ipynb"
+]
+
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 ipython = "^8.31.0"
@@ -26,15 +33,10 @@ geosketch = "1.2"
 pandas = "1.5.3"
 MetaQ-sc = "^1.0.6"
 anndata = "0.9.2"
-torch = [
-  { version = "^2.1.0", markers = "sys_platform == 'darwin'" },
-  { version = "2.1.1+cu121", source = "pytorch", markers = "sys_platform == 'linux'" },
-  { version = "^2.1.0", markers = "sys_platform == 'win32'" }
-]
-[[tool.poetry.source]]
-name = "pytorch"
-url = "https://download.pytorch.org/whl/cu121"
-priority = "explicit"
+papermill = "^2.7.0"
+itables = "^2.7.3"
+plotly = "^6.6.0"
+mygene = "^3.2.2"
 
 [build-system]
 requires = ["poetry-core"]

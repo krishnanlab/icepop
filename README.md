@@ -1,7 +1,11 @@
-# ICePop: Metacell-informative Cell Population
-This repository contains source code for ICePop ([DOI](TBD)). 
+<p align="center">
+  <img src="images/icon.jpg" width="800">
+</p>
 
-The data used in this study are available on Zenodo: https://doi.org/10.5281/zenodo.19238928
+# ICePop: Metacell-informative Cell Population
+This repository contains source code for ICePop ([link](https://doi.org/10.64898/2026.04.01.715877)). 
+
+The data used in this study are available on [Zenodo](https://doi.org/10.5281/zenodo.14629276)
 
 The code used to reproduce the analyses in the paper is available at: https://github.com/krishnanlab/icepop_analysis
 
@@ -9,14 +13,16 @@ The code used to reproduce the analyses in the paper is available at: https://gi
 `python>=3.11,<3.12`
 
 ## Installation
-ICePop can be installed easily via pip from PyPI: `pip install icepop`
+ICePop requires `torch==2.1.1`. To enable GPU acceleration, which substantially speeds up metacell reconstruction, we recommend installing PyTorch following the official instructions on the [PyTorch website](https://pytorch.org/) to ensure compatibility with your system. Specifically, we used [`torch-2.1.1+cu121`](https://download.pytorch.org/whl/cu121/torch-2.1.1%2Bcu121-cp311-cp311-linux_x86_64.whl#sha256=83bfe1134dfa8ab86553c15da5dffa190a86d822afafe8ea6de1169c10d971aa) in the paper.
+
+After installing torch, then install ICePop via pip: `pip install git+https://github.com/krishnanlab/icepop_public`
 
 ## Run ICePop
-Before running the analysis, we recommend downloading the processed data from [Zenodo](https://github.com/krishnanlab/icepop_analysis).
+Before running the analysis, we recommend downloading the processed data from [Zenodo](https://zenodo.org/records/19238928).
 
 Expand and place the downloaded files under `../data`, then run the following commands.
 
-A more detailed tutorial is available at XXX.
+A more detailed tutorial is available at [`notebook/ICePop_tutorial.ipynb`](https://github.com/krishnanlab/icepop_public/blob/main/notebook/ICePop_tutorial.ipynb)
 
 ### Step 1: Extract metacells
 ```
@@ -28,12 +34,13 @@ icepop metacell \
 
 #### Input options
 
-1. `--h5ad` (str) Path to input AnnData (.h5ad) file containing single-cell expression data
+1. `--h5ad` (str) Path to input AnnData (.h5ad) file containing single-cell expression ***count*** data
 2. `--outdir` (str) Output directory where MetaQ results will be written
 3. `--save_name` (str; default='metaq_res') prefix of metaq output under `./save/*`, do not write a path
 4. `--ncell_per_mc` (int; default=75) Target number of cells per metacell. The total number of metacells is \n determined as approximately `n_cells / ncell_per_mc`
 5. `--ct_key` (str; default='cell_type') Column name in `adata.obs` specifying cell-type annotations. Used to evaluate metacell purity
 6. `--device` (str; default='cuda') Compute device to use. Options include 'cuda' or 'cpu'
+7. `--batch_size` (int; default=512) Batch size to run metaq
 
 this step need gpu for faster speed
 
@@ -45,15 +52,15 @@ this step need gpu for faster speed
 ```
 icepop association \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
-    --mc_assign ../results/TM_FACS_mc/mc_assign.csv \
+    --mc_assign ../results/TM_FACS/mc_assign.csv \
     --magmaz ../data/magmaz/asd.genes.out \
     --sp mmusculus \
-    --outdir ../results/TM_FACS_asso
+    --outdir ../results/TM_FACS_association
 ```
 
 #### Input options
 
-1. `--h5ad` (str) Input AnnData file containing single-cell expression data
+1. `--h5ad` (str) Input AnnData file containing single-cell expression ***count*** data
 2. `--mc_assign` (str) CSV file mapping cells to metacell assignments (output from step 1: `outdir/mc_assign.csv`)
 3. `--magmaz` (str) [magmaz](https://doi.org/10.1371/journal.pcbi.1004219) MAGMA gene-level association file (*.genes.out) of a trait of interest
 4. `--spec_score` (str; default=None) Precomputed specificity scores; will be calculated if not provided
@@ -64,38 +71,57 @@ icepop association \
 9. `--trait_name` (str; optional) Trait name used for output file naming
 10. `--n_perm` (int; default=1000) Number of permutations for null distribution estimation
 11. `--q_thres` (float; default=0.1) FDR threshold for significance
-12. `--output_dfbs` (boolean; default=True) If output influential testing results
+12. `--min_purity` (float; default=0.2) Minimum metacell purity required for inclusion in cell type aggregation
+13. `--min_mc_size` (int; default=20) Minimum metacell size required for inclusion in cell type aggregation
+14. `--output_dfbs` (boolean; default=True) If output influential testing results
 
 #### Outputs
 
 1. `outdir/celltype__trait-*.csv`: Disease-cell type association table
 2. `outdir/dfbs__trait-*.npz`: Gene-level influence scores (DFBETAS) for each disease–cell type association
 3. `outdir/metacell__trait-*.csv`: Disease-metacell type association table
-4. `outdir/mc_spec_score.npz`: (if not provided as part of run arguments)
+4. `outdir/mc_spec_score.npz`: Metacell expression specificity (if nothing specified for `--spec_score`, this will be the path to generated expression specificity)
 5. `outdir/mcfdr__trait-*.csv`: Cell type × metacell matrix indicating significant disease-associated metacells within each cell type
 
 where `*` is trait name we assume magmaz file name is `*.genes.out`
 
-### Step3: Enrichment Analysis and Interactive output
+### Step3: Enrichment analysis and interactive output
 ```
+# run all gene sets
 icepop interactive \
-  --outdir results/ \
-  --geneset_collections KEGG \
-  --notebook ICEPOP-SUMMARY.ipynb \
-  --adata_path data.h5ad
+  --outdir ../results/TM_FACS \
+  --mcdir ../results/TM_FACS \
+  --geneset_collections All \
+  --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
+
+or
+
+# run specific gene sets
+icepop interactive \
+  --outdir ../results/TM_FACS \
+  --mcdir ../results/TM_FACS \
+  --geneset_collections BIOCARTA \
+  --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 
 or 
 
+# custom gene sets
 icepop interactive \
-  --outdir results/ \
+  --outdir ../results/TM_FACS \
+  --mcdir ../results/TM_FACS \
   --geneset_collections none \
   --geneset_path custom.gmt \
-  --notebook ICEPOP-SUMMARY.ipynb \
-  --adata_path data.h5ad
+  --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 ```
 
 #### Input options
-1. `--outdir` (str) Output directory for association results
-2. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
-3. `--geneset_path` (str) path to custom gmt file
-4. `--notebook` (str) ICEPOP-SUMMARY.ipynb
+1. `--outdir` (str) Output directory for association results. Enrichment results and reports will also be saved here.
+2. `--mcdir` (str)  Directory for metacell assignments (This dir can be the same as `--outdir`)
+3. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
+4. `--geneset_path` (str) path to custom gmt file if `--geneset_collections` is set to `none`
+5. `--adata_path` (str) path to AnnData file containing single-cell expression ***count*** data
+
+#### Outputs
+1. `outdir/icepop-report.ipynb`: Interactive Jupyter notebook containing all results
+2. `outdir/icepop-report.html`: Rendered HTML version of the notebook for easy viewing
+3. `outdir/enrichment`: Directory containing gene set enrichment analysis results
