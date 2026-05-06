@@ -21,14 +21,15 @@ def association(
     sp: str = 'mmusculus',
     ct_key: str = 'cell_type',
     trait_name: str = None,
-    n_perm: int = 1000,
+    n_perm: int = 2000,
     q_thres: float = 0.1,
     min_purity: float = 0.2,
-    min_mc_size: int = 20,
-    output_dfbs: bool = True
+    min_mc_size: int = 25,
+    output_dfbs: bool = True,
+    output_mcdfr: bool = True,
 ):
     """
-    Run metacell-based gene–trait association analysis.
+    Run metacell-based gene-trait association analysis.
 
     This command integrates single-cell metacell specificity scores
     with MAGMA gene-level statistics to infer disease- or trait-associated
@@ -55,7 +56,7 @@ def association(
         Column in `adata.obs` defining cell types.
     trait_name : str, optional
         Trait name used for output file naming.
-    n_perm : int, default=1000
+    n_perm : int, default=2000
         Number of permutations for null distribution estimation.
     q_thres : float, default=0.1
         FDR threshold for significance.
@@ -65,12 +66,16 @@ def association(
         Minimum metacell size required for inclusion in cell type aggregation.
     output_dfbs: bool: default=True
         Whether output influence diagnostics
+    output_mcdfr: bool: default=True
+        Whether output matrix of affected subgroups/metacells
 
     Outputs
     -------
     - metacell-level association results (CSV)
-    - cell-type–level association results (CSV)
+    - cell-type-level association results (CSV)
+    - affected metacells within cell type (CSV)
     - influence diagnostics (NPZ)
+    - metacell expression specificity score (NPZ) (if not provided)
     """
 
     t0 = time()
@@ -195,7 +200,7 @@ def association(
     assoc = MetacellAssoc(
         n_perm=n_perm, n_jobs=n_jobs,
         q_thres=q_thres, ct_key=ct_key,
-        output_dfbs=output_dfbs
+        output_dfbs=output_dfbs,
     )
     ct_df, mc_df, mc_fdr_df, ctdfbs = assoc.fit(
         X, y, freq_df,
@@ -208,7 +213,8 @@ def association(
     mc_df.to_csv(metacell_out, header=True, index=False)
     # cell-type-level association results
     ct_df.to_csv(celltype_out, header=True, index=False)
-    mc_fdr_df.to_csv(mcfdr_out, header=True, index=True)
+    if output_mcdfr:
+        mc_fdr_df.to_csv(mcfdr_out, header=True, index=True)
     if output_dfbs:
         # influence diagnostics
         np.savez_compressed(
