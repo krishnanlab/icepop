@@ -4,7 +4,6 @@ import pandas as pd
 from statsmodels.stats.multitest import multipletests
 from multiprocessing import Pool
 from multiprocessing.shared_memory import SharedMemory
-from scipy.sparse import csr_matrix
 from time import time
 from scipy.stats import norm
 import logging
@@ -153,7 +152,7 @@ def _lr_util(args):
 
 def _run_parallel_lr(
     X, y,
-    n_perm=1000,
+    n_perm=2000,
     random_state=42,
     n_jobs=20,
     eps=1e-12
@@ -171,7 +170,7 @@ def _run_parallel_lr(
         Predictor matrix.
     y : np.ndarray of shape (n_gene,)
         Response vector to be permuted.
-    n_perm : int, default=1000
+    n_perm : int, default=2000
         Number of random permutations of ``y``.
     random_state : int, default=42
         Seed for reproducible permutations.
@@ -236,55 +235,6 @@ def _run_parallel_lr(
         return beta_perm, se_perm
 
 
-def _celltype_from_metacell(beta_hat, cov_beta, f, null):
-    """
-    Aggregate metacell-level regression effects to a cell-type–level statistic.
-
-    The cell-type effect is computed as a weighted linear combination of
-    metacell coefficients:
-
-        beta_ct = f^T beta_hat
-        var_ct  = f^T cov_beta f
-
-    A z-score is derived and evaluated against an empirical null distribution
-    estimated from permutation statistics.
-
-    Parameters
-    ----------
-    beta_hat : np.ndarray of shape (n_metacell,)
-        Observed metacell regression coefficients.
-    cov_beta : np.ndarray of shape (n_metacell, n_metacell)
-        Covariance matrix of metacell coefficients estimated from permutations.
-    f : np.ndarray of shape (n_metacell,)
-        Normalized metacell weights for the given cell type.
-    null : np.ndarray of shape (n_perm,)
-        Permutation-derived null distribution of cell-type z-scores.
-
-    Returns
-    -------
-    beta_ct : float
-        Aggregated cell-type regression coefficient.
-    se_ct : float
-        Standard error of the aggregated coefficient.
-    z_ct : float
-        Z-score of the cell-type association.
-    p_ct : float
-        One-sided p-value computed from the fitted normal null distribution.
-    """
-    beta_ct = f @ beta_hat
-    var_ct = f @ cov_beta @ f
-    se_ct = np.sqrt(var_ct + 1e-12)
-    z_ct = beta_ct / se_ct
-
-    mu, sigma = norm.fit(null)
-    if null.sum() == 0:
-        mu = 0
-        sigma = 1e-12
-    p_ct = norm.sf(z_ct, loc=mu, scale=sigma)
-
-    return beta_ct, se_ct, z_ct, p_ct
-
-
 class MetacellAssoc:
     """
     Permutation-based metacell → cell-type association model.
@@ -305,7 +255,7 @@ class MetacellAssoc:
 
     Parameters
     ----------
-    n_perm : int, default=1000
+    n_perm : int, default=2000
         Number of permutations used to estimate null distributions.
     n_jobs : int, default=20
         Number of parallel worker processes.
@@ -323,13 +273,13 @@ class MetacellAssoc:
 
     def __init__(
         self,
-        n_perm: int = 1000,
+        n_perm: int = 2000,
         n_jobs: int = 20,
         eps: float = 1e-12,
         random_state: int = 42,
         q_thres: float = 0.1,
         ct_key: str = 'cell_type',
-        output_dfbs: bool = True
+        output_dfbs: bool = True,
     ):
         self.n_perm = n_perm
         self.n_jobs = n_jobs
@@ -347,38 +297,16 @@ class MetacellAssoc:
         c2mc2ct: pd.DataFrame,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
-        Run the full metacell → cell-type association pipeline.
-
-        Parameters
-        ----------
-        X : np.ndarray of shape (n_metacell, n_gene)
-            Metacell-by-gene expression or feature matrix.
-        y : np.ndarray of shape (n_gene,)
-            Gene-level score or phenotype association vector.
-        freq_df : pd.DataFrame of shape (n_celltype, n_metacell)
-            Cell-type–specific metacell weights (e.g., proportions or purity).
-        c2mc2ct : pd.DataFrame
-            Mapping table linking cells, metacells, and cell types. Must contain
-            columns ``["metacell", ct_key]``.
-
-        Returns
-        -------
-        ct_df : pd.DataFrame
-            Cell-type–level association statistics including beta, standard error,
-            z-score, p-value, FDR q-value, and significant metacell percentage.
-        mc_df : pd.DataFrame
-            Metacell-level regression statistics.
-        ctdfbs : np.ndarray of shape (n_celltype, n_gene)
-            Cell-type–level influence scores derived from DFBETAS.
+        Run the full metacell → cell-type association pipeline
         """
         X = X.astype(np.float32)
         y = y.astype(np.float32)
 
-        # metacell-level association
-        # get mc beta and se
+        # =============================
+        # Metacell-level association
+        # =============================
         beta_hat, se_hat, dfb = _linear_reg(X, y, eps=self.eps, dfb=True)
 
-        # estimate cov of metacell beta
         beta_perm, se_perm = _run_parallel_lr(
             X, y,
             n_perm=self.n_perm,
@@ -386,7 +314,6 @@ class MetacellAssoc:
             eps=self.eps,
             random_state=self.random_state
         )
-        cov_beta = np.cov(beta_perm, rowvar=False, dtype=np.float32)
 
         z = beta_hat / se_hat
         p = norm.sf(z)
@@ -399,7 +326,9 @@ class MetacellAssoc:
             "p": p,
         })
 
-        # build metacell weights per cell type
+        # =============================
+        # Build metacell weights per cell type
+        # =============================
         sig_w = norm.cdf(z)
 
         metacell_weight = {}
@@ -408,52 +337,75 @@ class MetacellAssoc:
             tot = w.sum()
             metacell_weight[ct] = w / (tot if tot > 0 else 1e-12)
 
-        # null t distribution for each cell type
+        # =============================
+        # Build permutation null beta distribution
+        # Directly compare beta_obs to beta_perm null
+        # No covariance / no cell-type SE
+        # =============================
         t0 = time()
-        logger.info("[perm-null] start building null distributions of association")
-        metacell_perm_t = {}
+        logger.info("[perm-null] start building null distributions of beta association")
+
+        metacell_perm_beta = {}
+
         sig_w_perm = norm.cdf(beta_perm / se_perm)
+
         for celltype, f in freq_df.iterrows():
             f = np.asarray(f, dtype=np.float32)
 
-            # perm ct beta
+            # permutation-specific weights
             f_perm = sig_w_perm * f[None, :]
             tot = f_perm.sum(1)
             tot = np.where(tot == 0, 1e-12, tot)
             f_perm = f_perm / tot[:, None]
+
+            # permutation cell-type beta
             beta_ct_perm = (beta_perm * f_perm).sum(1)
 
-            # perm ct se
-            f_perm = csr_matrix(f_perm)
-            out = np.empty(f_perm.shape[0], dtype=np.float32)
-            for i in range(f_perm.shape[0]):
-                idx = f_perm.indices[f_perm.indptr[i]:f_perm.indptr[i+1]]
-                val = f_perm.data[f_perm.indptr[i]:f_perm.indptr[i+1]]
-                out[i] = val @ cov_beta[np.ix_(idx, idx)] @ val
-            se_ct_perm = np.sqrt(out + 1e-12)
+            metacell_perm_beta[celltype] = beta_ct_perm
 
-            # get ct null distribution
-            t_ct_perm = beta_ct_perm / se_ct_perm
-            metacell_perm_t[celltype] = t_ct_perm
         logger.info(f"[perm-null] finished in {(time() - t0) / 60:.2f} min")
 
-        # aggregate to cell-type level
+        import pickle
+        with open('null.pkl', 'wb') as f:
+            pickle.dump(metacell_perm_beta, f)
+
+        # =============================
+        # Aggregate observed beta to cell-type level
+        # Compare observed beta against permutation beta null
+        # =============================
         t0 = time()
-        logger.info(f"[Aggregate] Aggregate metacell association to {self.ct_key} level")
+        logger.info(f"[Aggregate] Aggregate metacell beta to {self.ct_key} level")
+
         ct_res = []
+
         for ct, f in metacell_weight.items():
-            beta_ct, se_ct, z_ct, p_ct = _celltype_from_metacell(
-                beta_hat, cov_beta, f, metacell_perm_t[ct]
-            )
+            beta_ct = float(f @ beta_hat)
+
+            null_beta = metacell_perm_beta[ct]
+
+            # z-like score relative to null beta distribution, for ranking/output only
+            # z-score relative to permutation beta null distribution
+            null_mu = null_beta.mean()
+            null_sd = null_beta.std() + self.eps
+
+            z_ct = float((beta_ct - null_mu) / null_sd)
+
+            # use z_ct to compute one-sided p-value
+            p_ct = float(norm.sf(z_ct))
+
+            # SE-like output: null SD
+            se_ct = float(null_sd)
+
             ct_res.append((ct, beta_ct, se_ct, z_ct, p_ct))
+
         ct_df = pd.DataFrame(
             ct_res,
             columns=[self.ct_key, "beta", "se", "z", "p"]
         )
 
-        # multiple testing on cell type
         ct_df['q'] = multipletests(ct_df['p'], method="fdr_bh")[1]
-        logger.info(f"[mixture] finished in {(time() - t0) / 60:.2f} min")
+
+        logger.info(f"[Aggregate] finished in {(time() - t0) / 60:.2f} min")
 
         # estimate mixture of association
         t0 = time()
