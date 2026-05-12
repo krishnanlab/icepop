@@ -15,14 +15,14 @@ The code used to reproduce the analyses in the paper is available at: https://gi
 ## Installation
 ICePop requires `torch==2.1.1`. To enable GPU acceleration, which substantially speeds up metacell reconstruction, we recommend installing PyTorch following the official instructions on the [PyTorch website](https://pytorch.org/) to ensure compatibility with your system. Specifically, we used [`torch-2.1.1+cu121`](https://download.pytorch.org/whl/cu121/torch-2.1.1%2Bcu121-cp311-cp311-linux_x86_64.whl#sha256=83bfe1134dfa8ab86553c15da5dffa190a86d822afafe8ea6de1169c10d971aa) in the paper.
 
-After installing torch, then install ICePop via pip: `pip install git+https://github.com/krishnanlab/icepop_public`
+After installing torch, then install ICePop via pip: `pip install git+https://github.com/krishnanlab/icepop`
 
 ## Run ICePop
 Before running the analysis, we recommend downloading the processed data from [Zenodo](https://doi.org/10.5281/zenodo.20146708).
 
 Expand and place the downloaded files under `../data`, then run the following commands.
 
-A more detailed tutorial is available at [`notebook/ICePop_tutorial.ipynb`](https://github.com/krishnanlab/icepop_public/blob/main/notebook/ICePop_tutorial.ipynb)
+A more detailed tutorial is available at [`notebook/ICePop_tutorial.ipynb`](https://github.com/krishnanlab/icepop/blob/main/notebook/ICePop_tutorial.ipynb)
 
 ### Step 1: Extract metacells
 ```
