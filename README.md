@@ -2,7 +2,7 @@
   <img src="images/icon.jpg" width="800">
 </p>
 
-# ICePop: Metacell-informative Cell Population
+# ICePop: Informative Cell Population
 This repository contains source code for ICePop ([link](https://doi.org/10.64898/2026.04.01.715877)). 
 
 The data used in this study are available on [Zenodo](https://doi.org/10.5281/zenodo.14629276)
